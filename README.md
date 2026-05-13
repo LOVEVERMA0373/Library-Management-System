@@ -42,7 +42,7 @@ This **Library Management System** is a lightweight, responsive web application 
 
 | Dashboard View | Book Inventory |
 |---|---|
-| ![Dashboard](https://github.com/LOVEVERMA0373/Library-Management-System/blob/347648b58699c2505cc989112ea40ea361f07200/Screenshot%202026-05-14%20014626.png) | ![Inventory](https://via.placeholder.com/400x200?text=Inventory+Preview) |
+| ![Dashboard](https://github.com/LOVEVERMA0373/Library-Management-System/blob/347648b58699c2505cc989112ea40ea361f07200/Screenshot%202026-05-14%20014626.png) | ![Inventory](https://github.com/LOVEVERMA0373/Library-Management-System/blob/68cbc9091eeb68b8b27de57b5f7df0fc008f8512/Screenshot%202026-05-14%20014710.png) |
 
 ---
 
