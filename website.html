@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- Font Awesome for Icons (Book Icon) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" xintegrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Firebase Imports (Required for Persistence, though current logic is in-memory) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"; import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"; import { getFirestore,
+        doc, getDoc, addDoc, setDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"; import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // Expose Firebase services to the global scope for use in the script block window.firebase = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, doc, getDoc, addDoc, setDoc, onSnapshot, collection,
+        query, where, getDocs, setLogLevel };
+    </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary-blue': '#1056a2',
+                        'secondary-gray': '#f4f4f5',
+                        'dark-bg': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Base styles for the left sidebar */
+        
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+            min-width: 16rem;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+        /* Style for the main content shift */
+        
+        .content-shifted {
+            transition: margin-left 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        /* --- PROFESSIONAL MENU ITEM STYLING --- */
+        
+        .menu-item {
+            @apply flex items-center w-full p-3.5 rounded-lg font-medium transition duration-200 ease-in-out transform;
+        }
+        /* Hover effect for ALL items (Slide and shadow) */
+        
+        .menu-item:hover {
+            @apply translate-x-1 shadow-2xl;
+        }
+        /* Default Item (inactive) */
+        
+        .default-item {
+            /* Text color adjusted for white background */
+            @apply text-gray-700;
+        }
+        
+        .default-item:hover {
+            /* Changed hover background to light gray and text to primary blue */
+            @apply bg-gray-100 text-primary-blue shadow-gray-300/50;
+        }
+        /* Active Item (current page) - Kept blue/white for high visibility */
+        
+        .active-item {
+            @apply bg-primary-blue text-white shadow-lg shadow-blue-900/50;
+        }
+        
+        .active-item:hover {
+            @apply bg-blue-700 shadow-blue-500/50;
+        }
+        /* Add Item - Kept colored for emphasis */
+        
+        .add-item {
+            @apply bg-green-700 text-white;
+        }
+        
+        .add-item:hover {
+            @apply bg-green-800 shadow-green-500/50;
+        }
+        /* Fine Item - Kept colored for emphasis */
+        
+        .fine-item {
+            @apply bg-red-600 text-white;
+        }
+        
+        .fine-item:hover {
+            @apply bg-red-700 shadow-red-500/50;
+        }
+        /* Chart container styling for responsiveness */
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body class="bg-secondary-gray min-h-screen font-sans overflow-x-hidden">
+
+    <!-- Sidebar (Left-side menu) - BACKGROUND IS WHITE -->
+    <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-2xl z-20 transform -translate-x-full">
+
+        <!-- Sidebar Header / Logo -->
+        <div class="flex justify-between items-center p-4 h-16 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-primary-blue bg-white px-3 py-1 rounded-full">
+                <span class="text-gray-800">📚</span> LMS
+            </h2>
+            <button onclick="toggleSidebar()" class="text-gray-800 hover:text-red-600 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-300 md:hidden">
+                <!-- Close icon (X) -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Navigation Links (Updated with new professional classes) -->
+        <nav class="p-4 space-y-3">
+
+            <!-- Home Button -->
+            <button class="menu-item active-item" id="nav-Home" onclick="handleMenuClick('Home', 'nav-Home')">
+                <!-- Home Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                Home Dashboard
+            </button>
+
+            <!-- Search Button -->
+            <button class="menu-item default-item" id="nav-Search" onclick="handleMenuClick('Search', 'nav-Search')">
+                <!-- Search Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                Search Catalog
+            </button>
+
+            <!-- Books Button -->
+            <button class="menu-item default-item" id="nav-AllBooks" onclick="handleMenuClick('All Books', 'nav-AllBooks')">
+                <!-- Books Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.5v11M17.5 10.5H6.5m11 0a2 2 0 002-2V6.5a2 2 0 00-2-2H6.5a2 2 0 00-2 2v4a2 2 0 002 2h11z" /></svg>
+                All Books (Quantity)
+            </button>
+
+            <!-- Issued Books Button (Name of Person) -->
+            <button class="menu-item default-item" id="nav-IssuedBooks" onclick="handleMenuClick('Issued Books', 'nav-IssuedBooks')">
+                <!-- Issued Books / Borrower Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-6 0L9 6m0 0V3m6 3V3M10 11H7m3 0H7m0 0v3m0 0h3m-3 0v3m0 0h3" /></svg>
+                Current Borrowers
+            </button>
+
+            <!-- Latest Book Button -->
+            <button class="menu-item default-item" id="nav-LatestBook" onclick="handleMenuClick('Latest Book', 'nav-LatestBook')">
+                <!-- Latest Book Icon (Star/New) -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                Latest Book Title
+            </button>
+
+            <hr class="border-gray-200 my-4">
+
+            <!-- Add Book Button -->
+            <button class="menu-item add-item" id="nav-AddBook" onclick="handleMenuClick('Add Book', 'nav-AddBook')">
+                <!-- Add Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Add New Book Title
+            </button>
+
+            <!-- Fine Section Button -->
+            <button class="menu-item fine-item" id="nav-FineSection" onclick="handleMenuClick('Fine Section', 'nav-FineSection')">
+                <!-- Fine/Money Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                Fine Section
+            </button>
+
+        </nav>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div id="app-container" class="content-shifted min-h-screen">
+
+        <div class="p-4 md:p-8">
+
+            <!-- Header Bar -->
+            <header class="flex items-center bg-white p-4 shadow-lg rounded-xl mb-6 sticky top-0 z-10">
+
+                <!-- Sidebar Toggle Button (Hamburger Menu) -->
+                <button id="menu-button" onclick="toggleSidebar()" class="p-2 rounded-lg bg-primary-blue text-white shadow-md hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-150 ease-in-out mr-4">
+                    <!-- Hamburger Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+
+                <h1 class="text-2xl font-extrabold text-primary-blue tracking-tight flex-grow">
+                    Library System Frontend
+                </h1>
+
+                <!-- Notification Button -->
+                <div class="flex space-x-4">
+                    <button onclick="showNotificationMessage()" class="p-2 rounded-full bg-yellow-400 text-gray-800 shadow-md hover:bg-yellow-500 focus:outline-none focus:ring-4 focus:ring-yellow-300 transition duration-150 ease-in-out relative">
+                        <!-- Bell Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                        <!-- Badge for unread notifications -->
+                        <span class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">3</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Application Content Area -->
+            <div id="app-content" class="bg-white p-6 md:p-10 rounded-xl shadow-2xl min-h-[70vh]">
+                <!-- Content dynamically injected here -->
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Custom Modal/Message Box for Notifications -->
+    <div id="message-box" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4" onclick="closeMessageBox()">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>                Notifications
+            </h3>
+            <div id="message-content">
+                <p>You have 3 unread alerts:</p>
+                <ul class="list-disc list-inside mt-2 text-sm text-gray-600 space-y-1">
+                    <li>*The Great Gatsby* is overdue.</li>
+                    <li>New book added: *Project Apollo*.</li>
+                    <li>Fine section needs review.</li>
+                </ul>
+            </div>
+            <button onclick="closeMessageBox()" class="mt-4 w-full py-2 bg-primary-blue text-white rounded-lg hover:bg-blue-700 transition">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Issue/Return Book Modal -->
+    <div id="issue-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4" onclick="closeIssueModal()">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full" onclick="event.stopPropagation()">
+            <h3 class="text-2xl font-bold text-gray-800 mb-2" id="modal-book-title">Book Action</h3>
+            <p class="text-sm text-gray-500 mb-4" id="modal-book-author"></p>
+
+            <div id="modal-book-status-banner" class="mb-4 p-3 rounded-lg text-sm font-semibold"></div>
+
+            <!-- Area for Issuance -->
+            <form id="issue-form">
+                <div id="issue-form-area" class="space-y-3">
+                    <label for="borrower-name" class="block text-sm font-medium text-gray-700 mb-1">Borrower Name (Required)</label>
+                    <input type="text" id="borrower-name" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue p-3 border">
+                    <p class="text-xs text-gray-500 mt-1">Due date is currently simulated: <span id="projected-due-date"></span></p>
+                </div>
+            </form>
+
+            <!-- Area for Return Info -->
+            <div id="return-info-area" class="space-y-2 hidden p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <p class="font-bold mb-2">Copies Currently Issued:</p>
+                <div id="current-borrower-list" class="space-y-2 max-h-32 overflow-y-auto">
+                    <!-- Borrowers populated here -->
+                </div>
+
+                <hr class="my-2 border-gray-200">
+                <label for="return-borrower-name" class="block text-sm font-medium text-gray-700 mb-1">Borrower Name Returning Copy (Required)</label>
+                <input type="text" id="return-borrower-name" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 p-3 border">
+
+            </div>
+            <div id="modal-issue-message" class="mt-4 p-3 rounded-lg text-sm hidden"></div>
+
+
+            <div class="flex space-x-3 mt-6">
+                <button id="modal-confirm-button" onclick="confirmAction()" class="flex-grow py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+                    Confirm Action
+                </button>
+                <button onclick="closeIssueModal()" class="flex-grow py-3 px-4 border border-gray-300 rounded-lg shadow-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Firebase Setup (For future use/persistence) ---
+        let db, auth, userId;
+
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        async function initializeFirebase() {
+            if (!firebaseConfig) {
+                console.error("Firebase config is missing. Data will only be stored in memory.");
+                return;
+            }
+            try {
+                if (typeof window.firebase === 'undefined') {
+                    console.error("Firebase module failed to load.");
+                    return;
+                }
+
+                const app = window.firebase.initializeApp(firebaseConfig);
+                db = window.firebase.getFirestore(app);
+                auth = window.firebase.getAuth(app);
+                window.firebase.setLogLevel('Debug');
+
+                await new Promise((resolve) => {
+                    const unsubscribe = window.firebase.onAuthStateChanged(auth, async(user) => {
+                        unsubscribe();
+                        if (user) {
+                            userId = user.uid;
+                        } else {
+                            if (initialAuthToken) {
+                                await window.firebase.signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                const anonUser = await window.firebase.signInAnonymously(auth);
+                                userId = anonUser.user.uid;
+                            }
+                        }
+                        userId = userId || crypto.randomUUID();
+                        console.log("Authenticated User ID:", userId);
+                        resolve();
+                    });
+                });
+            } catch (error) {
+                console.error("Firebase initialization or authentication failed:", error);
+                userId = crypto.randomUUID();
+            }
+        }
+
+        // --- Library Data (Updated to handle multiple copies) ---
+        let library = [{
+            id: 1,
+            title: 'The Great Gatsby',
+            author: 'F. Scott Fitzgerald',
+            topic: 'Classic Literature',
+            serial: 'GAT1925',
+            total_copies: 3,
+            available_copies: 1,
+            currently_issued: [{
+                name: 'Jane Doe',
+                due: '2025-11-20'
+            }, {
+                name: 'Alice Johnson',
+                due: '2025-12-01'
+            }]
+        }, {
+            id: 2,
+            title: 'The Martian',
+            author: 'Andy Weir',
+            topic: 'Science Fiction',
+            serial: 'MAR2011',
+            total_copies: 5,
+            available_copies: 5,
+            currently_issued: []
+        }, {
+            id: 3,
+            title: 'Sapiens',
+            author: 'Yuval Noah Harari',
+            topic: 'Non-Fiction',
+            serial: 'SAP2011',
+            total_copies: 2,
+            available_copies: 0,
+            currently_issued: [{
+                name: 'John Smith',
+                due: '2025-12-01'
+            }, {
+                name: 'Bob Williams',
+                due: '2025-12-05'
+            }]
+        }, {
+            id: 4,
+            title: 'To Kill a Mockingbird',
+            author: 'Harper Lee',
+            topic: 'Fiction',
+            serial: 'TKM1960',
+            total_copies: 4,
+            available_copies: 4,
+            currently_issued: []
+        }, {
+            id: 5,
+            title: 'Dune',
+            author: 'Frank Herbert',
+            topic: 'Science Fiction',
+            serial: 'DUN1965',
+            total_copies: 3,
+            available_copies: 3,
+            currently_issued: []
+        }, {
+            id: 6,
+            title: 'Educated',
+            author: 'Tara Westover',
+            topic: 'Biography',
+            serial: 'EDU2018',
+            total_copies: 1,
+            available_copies: 0,
+            currently_issued: [{
+                name: 'Alex Johnson',
+                due: '2025-12-05'
+            }]
+        }, ];
+        let nextBookId = 7;
+        let currentPage = 'Home';
+        let activeBookId = null; // Stores the book ID being processed in the modal
+
+        // --- DOM Elements & Utilities ---
+        const sidebar = document.getElementById('sidebar');
+        const appContent = document.getElementById('app-content');
+        const appContainer = document.getElementById('app-container');
+        const issueModal = document.getElementById('issue-modal');
+        const messageBox = document.getElementById('message-box');
+
+        // Chart instances storage to destroy old charts before re-rendering
+        let statusChartInstance = null;
+        let topicChartInstance = null;
+
+
+        function todayString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function calculateDueDate(days = 30) {
+            const date = new Date();
+            date.setDate(date.getDate() + days);
+            return date.toISOString().split('T')[0];
+        }
+
+        function closeMessageBox() {
+            messageBox.classList.add('hidden');
+            messageBox.classList.remove('flex');
+        }
+
+        function showNotificationMessage() {
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add('flex');
+        }
+
+        // --- Sidebar Toggling Logic ---
+        function toggleSidebar() {
+            const isHidden = sidebar.classList.contains('-translate-x-full');
+
+            if (isHidden) {
+                // Show sidebar
+                sidebar.classList.remove('-translate-x-full');
+                // Shift main content for desktop view
+                appContainer.classList.add('md:ml-64');
+            } else {
+                // Hide sidebar
+                sidebar.classList.add('-translate-x-full');
+                // Reset main content shift
+                appContainer.classList.remove('md:ml-64');
+            }
+        }
+
+        // --- Professional Active State Handler ---
+        function handleMenuClick(viewName, clickedId) {
+            currentPage = viewName;
+            renderView();
+
+            const buttonMap = {
+                'Home': 'nav-Home',
+                'Search': 'nav-Search',
+                'All Books': 'nav-AllBooks',
+                'Issued Books': 'nav-IssuedBooks',
+                'Latest Book': 'nav-LatestBook'
+            };
+            const activeId = buttonMap[viewName];
+
+            // Reset all default buttons
+            document.querySelectorAll('.default-item, .active-item').forEach(item => {
+                item.classList.remove('active-item');
+                item.classList.add('default-item');
+            });
+
+            // Set the new active button (if it's not a special button)
+            if (activeId) {
+                const activeButton = document.getElementById(activeId);
+                activeButton.classList.add('active-item');
+                activeButton.classList.remove('default-item');
+            }
+
+            // Close sidebar only on mobile sizes after click
+            if (window.innerWidth < 768) {
+                setTimeout(toggleSidebar, 300);
+            }
+        }
+
+        // --- Issuance Modal Logic ---
+        function openIssueModal(bookId, action = 'issue') {
+            activeBookId = bookId;
+            const book = library.find(b => b.id === bookId);
+            if (!book) return;
+
+            const titleElement = document.getElementById('modal-book-title');
+            const authorElement = document.getElementById('modal-book-author');
+            const statusBanner = document.getElementById('modal-book-status-banner');
+            const confirmButton = document.getElementById('modal-confirm-button');
+            const issueArea = document.getElementById('issue-form-area');
+            const returnArea = document.getElementById('return-info-area');
+            const borrowerList = document.getElementById('current-borrower-list');
+            const messageDiv = document.getElementById('modal-issue-message');
+
+            messageDiv.classList.add('hidden');
+
+            titleElement.textContent = book.title;
+            authorElement.textContent = `by ${book.author}`;
+
+            // Determine if we are primarily showing the issue or return form
+            const isAvailable = book.available_copies > 0;
+            const isIssued = book.total_copies > book.available_copies;
+
+            statusBanner.innerHTML = `Copies Available: <span class="text-xl font-extrabold">${book.available_copies} / ${book.total_copies}</span>`;
+
+            if (isAvailable && action !== 'return') {
+                // Configure for ISSUE
+                statusBanner.className = 'mb-4 p-3 rounded-lg text-sm font-semibold bg-green-100 text-green-800';
+                confirmButton.textContent = 'Confirm Issue One Copy';
+                confirmButton.className = confirmButton.className.replace(/bg-red-|bg-green-/, 'bg-green-').replace(/hover:bg-red-|hover:bg-green-/, 'hover:bg-green-');
+
+                issueArea.classList.remove('hidden');
+                returnArea.classList.add('hidden');
+                document.getElementById('borrower-name').value = '';
+                document.getElementById('projected-due-date').textContent = calculateDueDate(30);
+
+            } else if (isIssued && action !== 'issue') {
+                // Configure for RETURN
+                statusBanner.className = 'mb-4 p-3 rounded-lg text-sm font-semibold bg-red-100 text-red-800';
+                confirmButton.textContent = 'Confirm One Copy Return';
+                confirmButton.className = confirmButton.className.replace(/bg-red-|bg-green-/, 'bg-red-').replace(/hover:bg-red-|hover:bg-green-/, 'hover:bg-red-');
+
+                issueArea.classList.add('hidden');
+                returnArea.classList.remove('hidden');
+                document.getElementById('return-borrower-name').value = '';
+
+                // Populate borrower list
+                borrowerList.innerHTML = book.currently_issued.map(item => {
+                    const isOverdue = new Date(item.due) < new Date(todayString());
+                    const dueClass = isOverdue ? 'text-red-500 font-bold' : 'text-gray-600';
+                    return `<div class="flex justify-between items-center text-sm p-1 border-b border-gray-100 last:border-b-0">
+                                <span><i class="fas fa-user-circle mr-1"></i> ${item.name}</span>
+                                <span class="${dueClass}">Due: ${item.due}</span>
+                            </div>`;
+                }).join('') || '<p class="text-gray-500 text-sm italic">Error: No active borrowers found for this return.</p>';
+
+            } else {
+                // Fallback if all copies are issued and trying to issue, or all available and trying to return
+                confirmButton.textContent = 'No Action Possible';
+                confirmButton.className = confirmButton.className.replace(/bg-red-|bg-green-/, 'bg-gray-400').replace(/hover:bg-red-|hover:bg-green-/, 'hover:bg-gray-400');
+                statusBanner.className = 'mb-4 p-3 rounded-lg text-sm font-semibold bg-yellow-100 text-yellow-800';
+
+                issueArea.classList.add('hidden');
+                returnArea.classList.add('hidden');
+
+                messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-yellow-100 text-yellow-800";
+                messageDiv.textContent = book.available_copies === 0 ? 'All copies are currently issued. Cannot issue more.' : 'No copies are currently issued. Cannot process a return.';
+                messageDiv.classList.remove('hidden');
+            }
+
+
+            issueModal.classList.remove('hidden');
+            issueModal.classList.add('flex');
+        }
+
+        function closeIssueModal() {
+            issueModal.classList.add('hidden');
+            issueModal.classList.remove('flex');
+            activeBookId = null;
+        }
+
+        function confirmAction() {
+            const book = library.find(b => b.id === activeBookId);
+            if (!book) return;
+            const messageDiv = document.getElementById('modal-issue-message');
+
+            const isIssueAction = document.getElementById('issue-form-area').classList.contains('hidden') === false;
+
+            if (isIssueAction) {
+                // ISSUE Logic
+                const borrowerName = document.getElementById('borrower-name').value.trim();
+                if (!borrowerName) {
+                    messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800";
+                    messageDiv.textContent = 'Error: Borrower name is required!';
+                    messageDiv.classList.remove('hidden');
+                    return;
+                }
+                if (book.available_copies <= 0) {
+                    messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800";
+                    messageDiv.textContent = 'Error: No copies are currently available to issue.';
+                    messageDiv.classList.remove('hidden');
+                    return;
+                }
+
+                book.available_copies--;
+                book.currently_issued.push({
+                    name: borrowerName,
+                    due: calculateDueDate(30),
+                    issue: todayString()
+                });
+
+                messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-green-100 text-green-800";
+                messageDiv.textContent = `SUCCESS: One copy issued to ${borrowerName}! Remaining available: ${book.available_copies}.`;
+                messageDiv.classList.remove('hidden');
+
+            } else {
+                // RETURN Logic
+                const returnName = document.getElementById('return-borrower-name').value.trim();
+                if (!returnName) {
+                    messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800";
+                    messageDiv.textContent = 'Error: Returning borrower name is required!';
+                    messageDiv.classList.remove('hidden');
+                    return;
+                }
+
+                const initialLength = book.currently_issued.length;
+                book.currently_issued = book.currently_issued.filter(item => item.name.toLowerCase() !== returnName.toLowerCase());
+
+                if (book.currently_issued.length < initialLength) {
+                    book.available_copies++;
+                    messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-green-100 text-green-800";
+                    messageDiv.textContent = `SUCCESS: One copy of "${book.title}" returned by ${returnName}. Available: ${book.available_copies}.`;
+                } else {
+                    messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-yellow-100 text-yellow-800";
+                    messageDiv.textContent = `WARNING: Could not find an active issue for borrower "${returnName}". Please check the name.`;
+                }
+                messageDiv.classList.remove('hidden');
+            }
+
+            // Re-render the current view to reflect status change
+            setTimeout(() => {
+                closeIssueModal();
+                renderView();
+            }, 1000);
+        }
+
+        // --- CHART RENDERING LOGIC ---
+        function renderDashboardCharts(data) {
+            // Destroy existing chart instances to prevent canvas duplication/errors
+            if (statusChartInstance) statusChartInstance.destroy();
+            if (topicChartInstance) topicChartInstance.destroy();
+
+            const {
+                totalAvailable,
+                totalIssued,
+                topicCounts
+            } = data;
+
+            // --- Chart 1: Book Status Bar Chart ---
+            const statusCtx = document.getElementById('bookStatusChart');
+            if (statusCtx) {
+                statusChartInstance = new Chart(statusCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Available Copies', 'Issued Copies'],
+                        datasets: [{
+                            label: 'Number of Copies',
+                            data: [totalAvailable, totalIssued],
+                            backgroundColor: ['#10b981', '#ef4444'], // Green and Red
+                            borderColor: ['#059669', '#dc2626'],
+                            borderWidth: 1,
+                            borderRadius: 5,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Total Copy Status'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                suggestedMax: Math.max(totalAvailable, totalIssued) + 2
+                            }
+                        }
+                    }
+                });
+            }
+
+            // --- Chart 2: Topic Distribution Doughnut Chart ---
+            const topicCtx = document.getElementById('bookTopicChart');
+            if (topicCtx) {
+                const topicLabels = Object.keys(topicCounts);
+                const topicData = Object.values(topicCounts).map(t => t.total); // Use total copies for topic distribution
+                const colors = [
+                    '#3b82f6', // Blue
+                    '#f59e0b', // Amber
+                    '#10b981', // Green
+                    '#eab308', // Yellow
+                    '#ef4444', // Red
+                    '#8b5cf6', // Violet
+                ];
+
+                topicChartInstance = new Chart(topicCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: topicLabels,
+                        datasets: [{
+                            label: 'Total Copies by Topic',
+                            data: topicData,
+                            backgroundColor: topicLabels.map((_, i) => colors[i % colors.length]),
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Collection Breakdown by Topic (Total Copies)'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- View Rendering Functions ---
+
+        function renderHome() {
+            const totalBooks = library.reduce((sum, book) => sum + book.total_copies, 0);
+            const totalAvailable = library.reduce((sum, book) => sum + book.available_copies, 0);
+            const totalIssued = totalBooks - totalAvailable;
+
+            // Calculate Topic Counts for the Doughnut Chart
+            const topicCounts = library.reduce((acc, book) => {
+                const topic = book.topic || 'Uncategorized';
+                acc[topic] = acc[topic] || {
+                    total: 0,
+                    available: 0
+                };
+                acc[topic].total += book.total_copies;
+                acc[topic].available += book.available_copies;
+                return acc;
+            }, {});
+
+            let bookCardsHtml = '';
+            if (library.length > 0) {
+                bookCardsHtml = library.map(book => {
+                    const isFullyAvailable = book.available_copies === book.total_copies;
+                    const isFullyIssued = book.available_copies === 0;
+
+                    let statusClass, statusText, icon;
+
+                    if (isFullyAvailable) {
+                        statusClass = 'bg-green-500';
+                        icon = '<i class="fas fa-check-circle"></i>';
+                        statusText = 'All Copies Available';
+                    } else if (isFullyIssued) {
+                        statusClass = 'bg-red-500';
+                        icon = '<i class="fas fa-exclamation-circle"></i>';
+                        statusText = 'All Copies Issued';
+                    } else {
+                        statusClass = 'bg-yellow-500';
+                        icon = '<i class="fas fa-pause-circle"></i>';
+                        statusText = 'Copies Available';
+                    }
+
+                    const buttonText = isFullyIssued ? 'Process Return' : 'Issue/Return Copy';
+                    const buttonClasses = isFullyIssued ?
+                        'bg-red-600 text-white hover:bg-red-700' :
+                        'bg-primary-blue text-white hover:bg-blue-700';
+
+
+                    return `
+                        <div class="p-4 bg-white rounded-xl shadow-lg border-b-4 border-gray-200 hover:shadow-2xl transition duration-300">
+                            <div class="flex items-start">
+                                <!-- Book Icon -->
+                                <div class="p-3 ${statusClass} rounded-full text-white text-3xl flex-shrink-0">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <div class="ml-4 flex-grow min-w-0">
+                                    <p class="text-lg font-bold text-gray-800 truncate">${book.title}</p>
+                                    <p class="text-sm text-gray-500">by ${book.author}</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-3">
+                                <!-- Copies Display -->
+                                <p class="text-xs font-semibold ${isFullyAvailable ? 'text-green-600' : 'text-red-600'} mb-2">
+                                    ${icon} ${book.available_copies} / ${book.total_copies} Copies Available
+                                </p>
+                                
+                                <!-- Action Button -->
+                                <button onclick="openIssueModal(${book.id})" 
+                                        class="w-full py-2 rounded-lg text-sm font-medium transition duration-150 shadow-md ${buttonClasses}">
+                                    <i class="fas fa-exchange-alt mr-1"></i> ${buttonText}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                bookCardsHtml = '<div class="col-span-full p-6 bg-yellow-100 rounded-lg text-yellow-800">No books found in the catalog. Please add one.</div>';
+            }
+
+            appContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-primary-blue">
+                    Library Management Overview
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-blue-100 p-6 rounded-xl shadow-lg border-l-4 border-primary-blue">
+                        <p class="text-5xl font-bold text-primary-blue">${library.length}</p>
+                        <p class="text-gray-600 font-medium mt-2">Unique Titles in Catalog</p>
+                    </div>
+                    <div class="bg-green-100 p-6 rounded-xl shadow-lg border-l-4 border-green-600">
+                        <p class="text-5xl font-bold text-green-600">${totalAvailable}</p>
+                        <p class="text-gray-600 font-medium mt-2">Total Copies Available</p>
+                    </div>
+                    <div class="bg-red-100 p-6 rounded-xl shadow-lg border-l-4 border-red-600">
+                        <p class="text-5xl font-bold text-red-600">${totalIssued}</p>
+                        <p class="text-gray-600 font-medium mt-2">Total Copies Issued</p>
+                    </div>
+                </div>
+                
+                <!-- CHARTS SECTION -->
+                <h3 class="text-2xl font-bold text-gray-700 mt-10 mb-6">Visual Data Insights</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl shadow-inner mb-10">
+                    <!-- Chart 1: Availability Status -->
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <div class="chart-container">
+                            <canvas id="bookStatusChart"></canvas>
+                        </div>
+                    </div>
+                    <!-- Chart 2: Topic Distribution -->
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <div class="chart-container">
+                            <canvas id="bookTopicChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <!-- END CHARTS SECTION -->
+
+                <h3 class="text-2xl font-bold text-gray-700 mt-10 mb-6">Actionable Catalog Summary</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    ${bookCardsHtml}
+                </div>
+            `;
+
+            // Render the charts after the HTML elements are in the DOM
+            renderDashboardCharts({
+                totalAvailable,
+                totalIssued,
+                topicCounts
+            });
+        }
+
+
+        // --- Helper function for rendering book rows (used by AllBooks and Search)
+        function getBookRow(book) {
+            const isFullyAvailable = book.available_copies === book.total_copies;
+            const statusText = `${book.available_copies} / ${book.total_copies}`;
+            const statusClass = isFullyAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+            const actionText = book.available_copies > 0 ? 'Issue/Return' : 'Process Return';
+
+            return `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3">${book.id}</td>
+                    <td class="px-4 py-3 font-semibold">${book.title}</td>
+                    <td class="px-4 py-3">${book.author}</td>
+                    <td class="px-4 py-3 text-sm">${book.topic}</td>
+                    <td class="px-4 py-3">${book.serial}</td>
+                    <td class="px-4 py-3">
+                        <span class="p-1 text-xs rounded-lg font-medium ${statusClass}">
+                            ${statusText}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <button onclick="openIssueModal(${book.id})" class="text-xs bg-primary-blue text-white px-3 py-1 rounded-full hover:bg-blue-600 transition shadow-md">
+                            <i class="fas fa-exchange-alt mr-1"></i> ${actionText}
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderAllBooks() {
+            const tableRows = library.map(getBookRow).join('');
+            const totalBooks = library.reduce((sum, book) => sum + book.total_copies, 0);
+
+            // Calculate Topic Counts for the new breakdown section
+            const topicCounts = library.reduce((acc, book) => {
+                const topic = book.topic || 'Uncategorized';
+                acc[topic] = acc[topic] || {
+                    total: 0,
+                    available: 0
+                };
+                acc[topic].total += book.total_copies;
+                acc[topic].available += book.available_copies;
+                return acc;
+            }, {});
+
+            const topicBreakdownHtml = Object.keys(topicCounts).map(topic => {
+                const count = topicCounts[topic];
+                const availabilityClass = count.available > 0 ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800';
+                return `
+                    <div class="p-3 rounded-lg shadow-sm border border-gray-100 ${availabilityClass}">
+                        <p class="font-bold text-sm">${topic}</p>
+                        <p class="text-xs">Available Copies: <span class="text-base font-extrabold">${count.available} / ${count.total}</span></p>
+                    </div>
+                `;
+            }).join('');
+
+
+            appContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-primary-blue">
+                    All Books Catalog (${library.length} Titles, ${totalBooks} Copies)
+                </h2>
+
+                <!-- NEW: Quantity by Topic Section -->
+                <h3 class="text-2xl font-bold text-gray-700 mt-4 mb-4">Quantity Breakdown by Topic</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-xl shadow-inner mb-6">
+                    ${topicBreakdownHtml}
+                </div>
+                <!-- END NEW SECTION -->
+
+
+                <div class="overflow-x-auto shadow-lg rounded-xl">
+                    <table class="min-w-full divide-y divide-gray-200 bg-white">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Author</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Topic</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Copies Status (Avail/Total)</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Back to Home Button -->
+                <button type="button" onclick="handleMenuClick('Home', 'nav-Home')" class="mt-8 py-3 px-6 border border-gray-300 rounded-lg shadow-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 transition duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    Back to Home Dashboard
+                </button>
+            `;
+        }
+
+        function renderLatestBook() {
+            const latestBook = library.length > 0 ? library[library.length - 1] : null;
+
+            if (!latestBook) {
+                appContent.innerHTML = `
+                    <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-primary-blue">Latest Book Title Added</h2>
+                    <div class="p-6 bg-yellow-100 rounded-xl border-l-4 border-yellow-500 shadow-md">
+                        <p class="text-lg font-medium text-yellow-800">The library catalog is empty. Add a book title first!</p>
+                    </div>
+                 `;
+                return;
+            }
+
+            appContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-primary-blue">
+                    Latest Book Title Added
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-blue-50 p-6 rounded-xl shadow-lg border-l-4 border-primary-blue">
+                        <p class="text-sm font-medium text-gray-500">Book ID: #${latestBook.id}</p>
+                        <h3 class="text-3xl font-bold text-gray-800 mt-1">${latestBook.title}</h3>
+                        <p class="text-xl text-primary-blue font-semibold mt-1">by ${latestBook.author}</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                        <dl class="space-y-3 text-gray-700">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Total Copies</dt>
+                                <dd class="font-semibold">${latestBook.total_copies}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Available Copies</dt>
+                                <dd class="font-bold ${latestBook.available_copies > 0 ? 'text-green-600' : 'text-red-600'}">
+                                    ${latestBook.available_copies}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Topic / Genre</dt>
+                                <dd class="font-semibold">${latestBook.topic}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAddBook() {
+            appContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-primary-blue">
+                    Add New Book Title to Catalog
+                </h2>
+                <form id="add-book-form" class="space-y-4 max-w-lg">
+                    <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500 text-sm text-yellow-800">
+                        This form adds a new book *title*. You must specify the initial number of copies available.
+                    </div>
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700">Book Title</label>
+                        <input type="text" id="title" name="title" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue p-3 border">
+                    </div>
+                    <div>
+                        <label for="author" class="block text-sm font-medium text-gray-700">Author Name</label>
+                        <input type="text" id="author" name="author" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue p-3 border">
+                    </div>
+                    <div>
+                        <label for="topic" class="block text-sm font-medium text-gray-700">Topic / Genre</label>
+                        <input type="text" id="topic" name="topic" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue p-3 border">
+                    </div>
+                    <div>
+                        <label for="serial" class="block text-sm font-medium text-gray-700">Book Serial Number (Unique Identifier for Title)</label>
+                        <input type="text" id="serial" name="serial" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue p-3 border">
+                    </div>
+                    <div>
+                        <label for="total_copies" class="block text-sm font-medium text-gray-700">Initial Number of Copies</label>
+                        <input type="number" id="total_copies" name="total_copies" required min="1" value="1" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue p-3 border">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Submit Button -->
+                        <button type="submit" class="py-3 px-4 border border-transparent rounded-lg shadow-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                            Save Book Title
+                        </button>
+                        
+                        <!-- Cancel Button (Goes to Home) -->
+                        <button type="button" onclick="handleMenuClick('Home', 'nav-Home')" class="py-3 px-4 border border-gray-300 rounded-lg shadow-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-blue transition duration-150">
+                            Cancel (Go to Home)
+                        </button>
+                    </div>
+
+                    <div id="add-book-message" class="mt-4 p-3 rounded-lg text-sm hidden"></div>
+                </form>
+            `;
+            document.getElementById('add-book-form').addEventListener('submit', handleAddBook);
+        }
+
+        function handleAddBook(event) {
+            event.preventDefault();
+            const form = event.target;
+            const title = form.title.value.trim();
+            const author = form.author.value.trim();
+            const topic = form.topic.value.trim();
+            const serial = form.serial.value.trim();
+            const totalCopies = parseInt(form.total_copies.value, 10);
+
+            const messageDiv = document.getElementById('add-book-message');
+
+            if (library.some(book => book.serial === serial)) {
+                messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800";
+                messageDiv.textContent = 'Error: Book Serial Number already exists for a title!';
+                messageDiv.classList.remove('hidden');
+                return;
+            }
+            if (totalCopies <= 0) {
+                messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-red-100 text-red-800";
+                messageDiv.textContent = 'Error: Initial number of copies must be at least 1!';
+                messageDiv.classList.remove('hidden');
+                return;
+            }
+
+            const newBook = {
+                id: nextBookId++,
+                title,
+                author,
+                topic,
+                serial,
+                total_copies: totalCopies,
+                available_copies: totalCopies,
+                currently_issued: []
+            };
+
+            library.push(newBook);
+
+            messageDiv.className = "mt-4 p-3 rounded-lg text-sm bg-green-100 text-green-800";
+            messageDiv.textContent = `SUCCESS: Book Title "${title}" added with ${totalCopies} copies!`;
+            messageDiv.classList.remove('hidden');
+            form.reset();
+            document.getElementById('total_copies').value = 1;
+        }
+
+        function renderIssuedBooks() {
+            const allIssued = library.flatMap(book =>
+                book.currently_issued.map(issue => ({
+                    title: book.title,
+                    serial: book.serial,
+                    borrower: issue.name,
+                    issueDate: issue.issue || 'N/A',
+                    dueDate: issue.due,
+                    bookId: book.id
+                }))
+            );
+
+            let tableRows = '';
+            if (allIssued.length === 0) {
+                tableRows = `<tr><td colspan="6" class="py-4 text-center text-gray-500">No copies are currently issued to borrowers.</td></tr>`;
+            } else {
+                tableRows = allIssued.map(issue => {
+                    const isOverdue = issue.dueDate && new Date(issue.dueDate) < new Date(todayString());
+                    const statusClass = isOverdue ? 'bg-red-500 text-white font-bold' : 'bg-yellow-100 text-yellow-800 font-medium';
+                    const overdueText = isOverdue ? 'OVERDUE' : 'Due Date';
+
+                    return `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-6 py-4 font-semibold">${issue.title}</td>
+                            <td class="px-6 py-4 text-gray-600">${issue.borrower}</td>
+                            <td class="px-6 py-4 text-sm">${issue.issueDate}</td>
+                            <td class="px-6 py-4">
+                                <span class="p-1 rounded-lg text-xs ${statusClass}">
+                                    ${issue.dueDate} (${overdueText})
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button onclick="openIssueModal(${issue.bookId}, 'return')" class="text-xs bg-green-500 text-white px-3 py-1 rounded-full hover:bg-green-600 transition">
+                                    Return Copy
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            appContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-primary-blue">
+                    Current Borrowers & Issued Copies
+                </h2>
+                <div class="overflow-x-auto shadow-lg rounded-xl">
+                    <table class="min-w-full divide-y divide-gray-200 bg-white">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Book Title</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Borrower Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Back to Home Button -->
+                <button type="button" onclick="handleMenuClick('Home', 'nav-Home')" class="mt-8 py-3 px-6 border border-gray-300 rounded-lg shadow-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 transition duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    Back to Home Dashboard
+                </button>
+            `;
+        }
+
+        function renderSearch() {
+            // Search implementation remains the same, but results now show copy status
+            appContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-primary-blue">
+                    Search Library Catalog (Titles & Copies)
+                </h2>
+                <form id="search-form" class="flex flex-col gap-4 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <input type="text" id="search-query" placeholder="Enter Title, Author, Topic, or Serial Number..." 
+                               class="flex-grow p-3 rounded-lg border border-gray-300 shadow-sm focus:border-primary-blue focus:ring-primary-blue">
+                        <select id="search-field" class="p-3 rounded-lg border border-gray-300 shadow-sm">
+                            <option value="all">Search All Fields</option>
+                            <option value="title">Title</option>
+                            <option value="author">Author</option>
+                            <option value="topic">Topic</option>
+                            <option value="serial">Serial Number</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <!-- Search Button -->
+                        <button type="submit" class="flex-grow md:flex-grow-0 px-6 py-3 bg-primary-blue text-white rounded-lg shadow-lg hover:bg-blue-700 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            Search
+                        </button>
+                        <!-- Cancel Button -->
+                        <button type="button" onclick="handleMenuClick('Home', 'nav-Home')" class="flex-grow md:flex-grow-0 px-6 py-3 border border-gray-300 rounded-lg shadow-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 transition duration-150">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+                <div id="search-results" class="space-y-4">
+                    <p class="text-gray-500">Search results will appear here.</p>
+                </div>
+            `;
+            document.getElementById('search-form').addEventListener('submit', handleSearch);
+        }
+
+        function handleSearch(event) {
+            event.preventDefault();
+            const query = document.getElementById('search-query').value.trim().toLowerCase();
+            const field = document.getElementById('search-field').value;
+            const resultsDiv = document.getElementById('search-results');
+
+            if (!query) {
+                resultsDiv.innerHTML = '<p class="text-red-500 font-medium">Please enter a search query.</p>';
+                return;
+            }
+
+            const results = library.filter(book => {
+                if (field === 'all') {
+                    return book.title.toLowerCase().includes(query) ||
+                        book.author.toLowerCase().includes(query) ||
+                        book.topic.toLowerCase().includes(query) ||
+                        book.serial.toLowerCase().includes(query);
+                } else {
+                    return book[field] && book[field].toLowerCase().includes(query);
+                }
+            });
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = `<p class="text-gray-500">No results found for "${query}" in ${field}.</p>`;
+                return;
+            }
+
+            const resultsHtml = results.map(book => {
+                const available = book.available_copies;
+                const total = book.total_copies;
+                const statusText = available > 0 ? `${available} available` : 'All issued';
+                const statusClass = available > 0 ? 'text-green-600' : 'text-red-600';
+
+                return `
+                    <div class="p-4 bg-gray-100 rounded-xl shadow-md border-l-4 ${available > 0 ? 'border-green-500' : 'border-red-500'}">
+                        <p class="text-lg font-bold text-gray-800">${book.title} <span class="text-sm font-normal text-gray-500">(${book.serial})</span></p>
+                        <p class="text-sm text-gray-600">Author: ${book.author} | Topic: ${book.topic}</p>
+                        <p class="text-sm font-medium ${statusClass}">Copies Status: ${statusText} / ${total} total</p>
+                        <button onclick="openIssueModal(${book.id})" class="mt-2 text-xs bg-primary-blue text-white px-3 py-1 rounded-full hover:bg-blue-600 transition">
+                            ${available > 0 ? 'Issue Copy' : 'Process Return'}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            resultsDiv.innerHTML = `
+                <h3 class="text-xl font-bold mb-3">${results.length} Titles Found:</h3>
+                <div class="space-y-3">${resultsHtml}</div>
+            `;
+        }
+
+        function renderFineSection() {
+            // Simplify fine calculation based only on currently_issued list
+            const overdueIssues = library.flatMap(book =>
+                book.currently_issued.filter(issue => issue.due && new Date(issue.due) < new Date(todayString()))
+                .map(issue => ({
+                    title: book.title,
+                    borrower: issue.name,
+                    dueDate: issue.due
+                }))
+            );
+
+            let fineRowsHtml = '';
+            if (overdueIssues.length === 0) {
+                fineRowsHtml = `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">No overdue books found. All clear!</td></tr>`;
+            } else {
+                fineRowsHtml = overdueIssues.map(issue => {
+                    const today = new Date(todayString());
+                    const dueDate = new Date(issue.dueDate);
+                    const diffTime = today - dueDate;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const fine = (diffDays * 0.25).toFixed(2);
+
+                    return `
+                        <tr class="border-b">
+                            <td class="px-4 py-2">${issue.title}</td>
+                            <td class="px-4 py-2">${issue.borrower}</td>
+                            <td class="px-4 py-2 text-red-600 font-semibold">${diffDays} days</td>
+                            <td class="px-4 py-2 text-red-800 font-bold">$${fine}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            appContent.innerHTML = `
+                <h2 class="text-4xl font-extrabold text-gray-800 mb-6 border-b-2 pb-2 text-red-600">
+                    Overdue Fines & Payments
+                </h2>
+                <div class="p-6 bg-red-50 rounded-xl border-l-4 border-red-500 shadow-md">
+                    <p class="text-lg font-medium text-red-800 mb-4">
+                        This section lists all overdue copies. (Standard fine rate: $0.25 per day overdue).
+                    </p>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white rounded-lg shadow">
+                            <thead class="bg-gray-200">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Book Title</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Borrower</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Days Overdue</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Total Fine</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${fineRowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Back to Home Button -->
+                <button type="button" onclick="handleMenuClick('Home', 'nav-Home')" class="mt-8 py-3 px-6 border border-gray-300 rounded-lg shadow-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 transition duration-150">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    Back to Home Dashboard
+                </button>
+             `;
+        }
+
+
+        function renderView() {
+            closeIssueModal(); // Close any open modal before rendering a new view
+            switch (currentPage) {
+                case 'Add Book':
+                    renderAddBook();
+                    break;
+                case 'All Books':
+                    renderAllBooks();
+                    break;
+                case 'Issued Books':
+                    renderIssuedBooks();
+                    break;
+                case 'Latest Book':
+                    renderLatestBook();
+                    break;
+                case 'Search':
+                    renderSearch();
+                    break;
+                case 'Fine Section':
+                    renderFineSection();
+                    break;
+                case 'Home':
+                default:
+                    renderHome();
+                    break;
+            }
+        }
+
+        // --- Initialization ---
+        window.onload = async function() {
+            await initializeFirebase();
+            // Automatically open the sidebar on desktop on load (width >= 768px)
+            if (window.innerWidth >= 768) {
+                sidebar.classList.remove('-translate-x-full');
+                appContainer.classList.add('md:ml-64');
+            }
+            renderView();
+        };
+    </script>
+</body>
+
+</html>
