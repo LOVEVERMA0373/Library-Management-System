@@ -4,7 +4,7 @@
   
 ![Typing Animation](https://readme-typing-svg.demolab.com?font=Fira+Code&size=25&pause=1000&color=36BCF7&center=true&vCenter=true&width=435&lines=Developed+by+Ayush+Verma;Building+Smart+Solutions;Library+Management+System)
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/aayushverma5793/deploy-status)](https://ayushlms.netlify.app/)
+[![View Code](https://img.shields.io/badge/View-Code-blue?style=for-the-badge&logo=github)](https://ayushlms.netlify.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [**View Demo**](https://ayushlms.netlify.app/) • [**Report Bug**](https://github.com/LOVEVERMA0373/Library-Management-System/issues) • [**Request Feature**](https://github.com/LOVEVERMA0373/Library-Management-System/issues)
