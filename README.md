@@ -2,7 +2,7 @@
 
 # 📚 Library Management System
   
-![Typing Animation](https://readme-typing-svg.demolab.com?font=Fira+Code&size=25&pause=1000&color=36BCF7&center=true&vCenter=true&width=435&lines=Developed+by+Ayush+Verma;Building+Smart+Solutions;Library+Management+Simplified)
+![Typing Animation](https://readme-typing-svg.demolab.com?font=Fira+Code&size=25&pause=1000&color=36BCF7&center=true&vCenter=true&width=435&lines=Developed+by+Ayush+Verma;Building+Smart+Solutions;Library+Management+System)
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/your-id-here/deploy-status)](https://ayushlms.netlify.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
